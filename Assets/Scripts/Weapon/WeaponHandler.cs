@@ -10,6 +10,8 @@ namespace Weapon
         [SerializeField] private GameObject bulletPrefab;
         [SerializeField] private Transform barrelEnd;
         [SerializeField] private float bulletSpeed = 5500f;
+        [SerializeField] private Camera mainCamera;
+        [SerializeField] private LayerMask aimHittableLayers;
 
         [Header("Audio")]
         [SerializeField] private AudioSource weaponAudioSource;
@@ -63,11 +65,19 @@ namespace Weapon
                 return;
             }
             
-            GameObject bulletInstance = Instantiate(bulletPrefab, barrelEnd.position, barrelEnd.rotation);
+            Ray ray = mainCamera.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0));
+            Vector3 direction = ray.direction;
+            
+            if (Physics.Raycast(ray, out RaycastHit hit, 999f, aimHittableLayers))
+            {
+                direction = (hit.point - barrelEnd.position).normalized;
+            }
+
+            GameObject bulletInstance = Instantiate(bulletPrefab, barrelEnd.position, Quaternion.LookRotation(direction));
             
             if (bulletInstance.TryGetComponent<Rigidbody>(out Rigidbody bulletRigidbody))
             {
-                bulletRigidbody.AddForce(barrelEnd.forward * bulletSpeed);
+                bulletRigidbody.AddForce(direction * bulletSpeed);
             }
         }
         
