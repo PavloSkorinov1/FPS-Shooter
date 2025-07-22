@@ -29,6 +29,7 @@ namespace Player
         private Rigidbody _rigidbody;
         private PlayerInputActions _playerInputActions;
         private Transform _mainCameraTransform;
+        private CapsuleCollider _capsuleCollider;
 
         private Vector2 _currentMovementInput;
         private Vector2 _currentLookInput;
@@ -42,7 +43,6 @@ namespace Player
         private void Awake()
         {
             Initialize();
-            SetupCamera();
             BindInputActions();
         }
 
@@ -80,19 +80,13 @@ namespace Player
         {
             _rigidbody = GetComponent<Rigidbody>();
             _playerInputActions = new PlayerInputActions();
-            _mainCameraTransform = Camera.main.transform;
-        }
+            _mainCameraTransform = GetComponentInChildren<Camera>().transform;
+            _capsuleCollider = GetComponent<CapsuleCollider>();
 
-        private void SetupCamera()
-        {
-            if (_mainCameraTransform == null)
+			if (_mainCameraTransform == null)
             {
-                Debug.LogError("PlayerMovement: No main camera found");
-                return;
+                Debug.LogError("PlayerMovement: No camera found");
             }
-            _mainCameraTransform.SetParent(cameraTarget);
-            _mainCameraTransform.localPosition = Vector3.zero;
-            _mainCameraTransform.localRotation = Quaternion.identity;
         }
 
         private void BindInputActions()
@@ -131,7 +125,10 @@ namespace Player
 
         private void HandleGroundCheck()
         {
-            _isGrounded = Physics.Raycast(groundCheck.position, Vector3.down, out _groundHit, groundDistance + 0.1f, groundMask);
+            float sphereRadius = _capsuleCollider.radius * 0.9f;
+            Vector3 sphereOrigin = groundCheck.position + (Vector3.up * sphereRadius);
+            _isGrounded = Physics.SphereCast(sphereOrigin, sphereRadius, Vector3.down, out _groundHit, groundDistance, groundMask);
+
             if (!_wasGrounded && _isGrounded)
             {
                 PlayLandingEffect();
@@ -141,17 +138,17 @@ namespace Player
         private void HandleMovement()
         {
             float currentSpeed = _isSprinting ? sprintSpeed : moveSpeed;
-            Vector3 moveDirection = (transform.right * _currentMovementInput.x) + (transform.forward * _currentMovementInput.y);
-            
+            Vector3 inputDirection = (transform.right * _currentMovementInput.x) + (transform.forward * _currentMovementInput.y);
+            Vector3 targetVelocity = inputDirection * currentSpeed;
+
+            targetVelocity.y = _rigidbody.linearVelocity.y;
+
             if (_isGrounded && !_justJumped)
             {
-                Vector3 slopeMoveDirection = Vector3.ProjectOnPlane(moveDirection, _groundHit.normal);
-                _rigidbody.linearVelocity = slopeMoveDirection * currentSpeed;
+                targetVelocity = Vector3.ProjectOnPlane(targetVelocity, _groundHit.normal);
             }
-            else
-            {
-                _rigidbody.linearVelocity = new Vector3(moveDirection.x * currentSpeed, _rigidbody.linearVelocity.y, moveDirection.z * currentSpeed);
-            }
+            
+            _rigidbody.linearVelocity = targetVelocity;
         }
 
         private void HandleGravity()
