@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 7760547259083208255}
   - component: {fileID: 1679689627134497625}
   - component: {fileID: 4158664762110871350}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: Bullet_C_Part
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -97,7 +97,10 @@ GameObject:
   - component: {fileID: 8164191624068732406}
   - component: {fileID: 5107876460368566867}
   - component: {fileID: 6991317090087595673}
-  m_Layer: 0
+  - component: {fileID: -4895784497850248685}
+  - component: {fileID: 2334644317792563791}
+  - component: {fileID: 8528330976443746427}
+  m_Layer: 8
   m_Name: Bullet_C
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -173,3 +176,70 @@ MeshRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!54 &-4895784497850248685
+Rigidbody:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8792954647265824588}
+  serializedVersion: 4
+  m_Mass: 1
+  m_Drag: 0
+  m_AngularDrag: 0.05
+  m_CenterOfMass: {x: 0, y: 0, z: 0}
+  m_InertiaTensor: {x: 1, y: 1, z: 1}
+  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ImplicitCom: 1
+  m_ImplicitTensor: 1
+  m_UseGravity: 1
+  m_IsKinematic: 0
+  m_Interpolate: 0
+  m_Constraints: 0
+  m_CollisionDetection: 0
+--- !u!135 &2334644317792563791
+SphereCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8792954647265824588}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Radius: 0.04
+  m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &8528330976443746427
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8792954647265824588}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: aa79947ec3bf66b4a8e386d7b3652254, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  bulletLifetime: 3
+  hittableLayers:
+    serializedVersion: 2
+    m_Bits: 119
+  bulletHolePrefab: {fileID: 179232, guid: b2ac1383a96f94a50b7ed458be173bbd, type: 3}
+  bulletHoleLifetime: 3
+  hitSfx: {fileID: 8300000, guid: 68f790dbfa1f84670a70b81bd91a98e1, type: 3}

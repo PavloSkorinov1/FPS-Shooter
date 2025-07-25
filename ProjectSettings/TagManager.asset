@@ -16,8 +16,8 @@ TagManager:
   - Ground
   - Weapon
   - Bullet
-  - 
-  - 
+  - WeaponPickup
+  - IgnorePickup
   - 
   - 
   - 
