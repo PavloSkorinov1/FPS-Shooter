@@ -1,6 +1,5 @@
 using Input;
 using UnityEngine;
-using UnityEngine.InputSystem;
 
 namespace Player
 {
@@ -12,37 +11,54 @@ namespace Player
         [SerializeField] private float moveSpeed = 7f;
         [SerializeField] private float sprintSpeed = 12f;
         [SerializeField] private float gravityForce = -9.81f;
+        
+        [Header("Jump Settings")]
         [SerializeField] private float jumpForce = 920f;
+        [SerializeField] private float jumpCooldown = 0.25f;
+        [SerializeField] private float groundCheckRadius = 0.2f;
 
         [Header("Look Settings")]
         [SerializeField] private float mouseSensitivity = 15f;
-        [SerializeField] private Transform cameraTarget;
 
         [Header("Ground Check")]
         [SerializeField] private Transform groundCheck;
-        [SerializeField] private float groundDistance = 0.4f;
         [SerializeField] private LayerMask groundMask;
         
         [Header("Effects")]
-        [SerializeField] private ParticleSystem landingParticles;
+        [SerializeField] private GameObject landingParticles;
+        
+        [Header("Audio Settings")]
+        [SerializeField] private AudioSource audioSource;
+        [SerializeField] private AudioClip jumpSfx;
+        [SerializeField] private AudioClip[] walkSfx;
+        [SerializeField] private AudioClip[] runSfx;
+        [SerializeField] private float walkStepInterval = 0.5f;
+        [SerializeField] private float runStepInterval = 0.3f;
+        
 
         private Rigidbody _rigidbody;
+        private CapsuleCollider _capsuleCollider;
         private PlayerInputActions _playerInputActions;
         private Transform _mainCameraTransform;
-        private CapsuleCollider _capsuleCollider;
 
         private Vector2 _currentMovementInput;
         private Vector2 _currentLookInput;
-        private float _xRotation = 0f;
-        private bool _isGrounded;
         private bool _isSprinting;
-        private RaycastHit _groundHit;
+        private bool _wasSprinting;
+        private bool _isGrounded;
         private bool _wasGrounded;
+        private bool _jumpRequested;
         private bool _justJumped;
+        private float _jumpCooldownTimer;
+        private float _xRotation = 0f;
+        private float _stepTimer;
+        
+        private Vector3 _groundNormal;
 
         private void Awake()
         {
             Initialize();
+            SetupCamera();
             BindInputActions();
         }
 
@@ -51,24 +67,13 @@ namespace Player
             SetupCursor();
         }
 
-        private void OnEnable()
+        private void OnEnable() => _playerInputActions.Player.Enable();
+        private void OnDisable() => _playerInputActions.Player.Disable();
+        
+        private void Update()
         {
-            _playerInputActions.Player.Enable();
-        }
-
-        private void OnDisable()
-        {
-            _playerInputActions.Player.Disable();
-        }
-
-        private void FixedUpdate()
-        {
-            HandleGroundCheck();
-            HandleMovement();
-            HandleGravity();
-            
-            _justJumped = false;
-            _wasGrounded = _isGrounded;
+            HandleJumpCooldown();
+            HandleFootstepSounds();
         }
 
         private void LateUpdate()
@@ -76,16 +81,28 @@ namespace Player
             HandleLook();
         }
 
+        private void FixedUpdate()
+        {
+            HandleGroundCheck();
+            HandleMovement();
+            HandleGravity();
+            HandleJump();
+            HandleLandingEffects();
+        }
+        
         private void Initialize()
         {
             _rigidbody = GetComponent<Rigidbody>();
+            _capsuleCollider = GetComponent<CapsuleCollider>();
             _playerInputActions = new PlayerInputActions();
             _mainCameraTransform = GetComponentInChildren<Camera>().transform;
-            _capsuleCollider = GetComponent<CapsuleCollider>();
-
-			if (_mainCameraTransform == null)
+        }
+        
+        private void SetupCamera()
+        {
+            if (_mainCameraTransform == null)
             {
-                Debug.LogError("PlayerMovement: No camera found");
+                Debug.LogError("PlayerMovement: No child camera found");
             }
         }
 
@@ -97,10 +114,10 @@ namespace Player
             _playerInputActions.Player.Look.performed += ctx => _currentLookInput = ctx.ReadValue<Vector2>();
             _playerInputActions.Player.Look.canceled += ctx => _currentLookInput = Vector2.zero;
             
-            _playerInputActions.Player.Sprint.performed += OnSprint;
-            _playerInputActions.Player.Sprint.canceled += OnSprint;
-            
-            _playerInputActions.Player.Jump.performed += OnJump;
+            _playerInputActions.Player.Sprint.performed += ctx => _isSprinting = true;
+            _playerInputActions.Player.Sprint.canceled += ctx => _isSprinting = false;
+
+            _playerInputActions.Player.Jump.performed += ctx => RequestJump();
         }
 
         private void SetupCursor()
@@ -108,55 +125,130 @@ namespace Player
             Cursor.lockState = CursorLockMode.Locked;
         }
         
-        private void OnSprint(InputAction.CallbackContext context)
+        private void HandleJumpCooldown()
         {
-            _isSprinting = context.ReadValueAsButton();
-        }
-        
-        private void OnJump(InputAction.CallbackContext context)
-        {
-            if (_isGrounded)
+            if (_jumpCooldownTimer > 0)
             {
-
-                _rigidbody.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);
-                _justJumped = true;
+                _jumpCooldownTimer -= Time.deltaTime;
             }
         }
-
+        private void RequestJump()
+        {
+            if (_isGrounded && _jumpCooldownTimer <= 0)
+            {
+                _jumpRequested = true;
+                _justJumped = true;
+                
+                if (jumpSfx != null && audioSource != null)
+                {
+                    audioSource.PlayOneShot(jumpSfx);
+                }
+            }
+        }
+        
         private void HandleGroundCheck()
         {
-            float sphereRadius = _capsuleCollider.radius * 0.9f;
-            Vector3 sphereOrigin = groundCheck.position + (Vector3.up * sphereRadius);
-            _isGrounded = Physics.SphereCast(sphereOrigin, sphereRadius, Vector3.down, out _groundHit, groundDistance, groundMask);
-
-            if (!_wasGrounded && _isGrounded)
+            _wasGrounded = _isGrounded;
+            if (Physics.SphereCast(transform.position, groundCheckRadius, Vector3.down, out RaycastHit hit, _capsuleCollider.height / 2f - groundCheckRadius + 0.1f, groundMask))
             {
-                PlayLandingEffect();
+                _isGrounded = true;
+                _groundNormal = hit.normal;
+            }
+            else
+            {
+                _isGrounded = false;
+                _groundNormal = Vector3.up;
             }
         }
 
         private void HandleMovement()
         {
-            float currentSpeed = _isSprinting ? sprintSpeed : moveSpeed;
-            Vector3 inputDirection = (transform.right * _currentMovementInput.x) + (transform.forward * _currentMovementInput.y);
-            Vector3 targetVelocity = inputDirection * currentSpeed;
-
-            targetVelocity.y = _rigidbody.linearVelocity.y;
-
-            if (_isGrounded && !_justJumped)
+            if (_justJumped)
             {
-                targetVelocity = Vector3.ProjectOnPlane(targetVelocity, _groundHit.normal);
+                _justJumped = false;
+                return;
             }
+
+            float currentSpeed = _isSprinting ? sprintSpeed : moveSpeed;
+            Vector3 targetVelocity = new Vector3(_currentMovementInput.x, 0, _currentMovementInput.y);
+            targetVelocity = _mainCameraTransform.TransformDirection(targetVelocity) * currentSpeed;
+
+            Vector3 projectedVelocity = Vector3.ProjectOnPlane(targetVelocity, _groundNormal);
             
-            _rigidbody.linearVelocity = targetVelocity;
+            Vector3 newVelocity = new Vector3(projectedVelocity.x, _rigidbody.linearVelocity.y, projectedVelocity.z);
+            _rigidbody.linearVelocity = newVelocity;
         }
 
         private void HandleGravity()
         {
-            if (!_isGrounded)
+            if (_isGrounded)
+            {
+                if (_rigidbody.linearVelocity.y > 0)
+                {
+                    _rigidbody.linearVelocity = new Vector3(_rigidbody.linearVelocity.x, 0, _rigidbody.linearVelocity.z);
+                }
+            }
+            else
             {
                 _rigidbody.AddForce(Vector3.up * gravityForce, ForceMode.Acceleration);
             }
+        }
+        
+        private void HandleJump()
+        {
+            if (_jumpRequested)
+            {
+                _rigidbody.linearVelocity = new Vector3(_rigidbody.linearVelocity.x, 0f, _rigidbody.linearVelocity.z);
+                _rigidbody.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);
+                _jumpCooldownTimer = jumpCooldown;
+                _jumpRequested = false;
+            }
+        }
+
+        private void HandleLandingEffects()
+        {
+            if (!_wasGrounded && _isGrounded)
+            {
+                if (landingParticles != null)
+                {
+                    GameObject particles = Instantiate(landingParticles, groundCheck.position, landingParticles.transform.rotation);
+                    Destroy(particles, 1.5f);
+                }
+            }
+        }
+        
+        private void HandleFootstepSounds()
+        {
+            if (!_isGrounded || audioSource == null) return;
+            
+            if (_currentMovementInput == Vector2.zero)
+            {
+                _stepTimer = 0f;
+                return;
+            }
+
+            if (_isSprinting != _wasSprinting)
+            {
+                _stepTimer = 0f;
+            }
+
+            _stepTimer -= Time.deltaTime;
+
+            if (_stepTimer <= 0f)
+            {
+                AudioClip[] currentClips = _isSprinting ? runSfx : walkSfx;
+                float currentInterval = _isSprinting ? runStepInterval : walkStepInterval;
+                
+                if (currentClips.Length > 0)
+                {
+                    int index = Random.Range(0, currentClips.Length);
+                    audioSource.PlayOneShot(currentClips[index]);
+                }
+                
+                _stepTimer = currentInterval;
+            }
+            
+            _wasSprinting = _isSprinting;
         }
 
         private void HandleLook()
@@ -169,15 +261,6 @@ namespace Player
 
             _mainCameraTransform.localRotation = Quaternion.Euler(_xRotation, 0f, 0f);
             transform.Rotate(Vector3.up * mouseX);
-        }
-        
-        private void PlayLandingEffect()
-        {
-            if (landingParticles != null)
-            {
-                ParticleSystem instance = Instantiate(landingParticles, _groundHit.point, Quaternion.LookRotation(_groundHit.normal));
-                Destroy(instance.gameObject, instance.main.duration);
-            }
         }
     }
 }

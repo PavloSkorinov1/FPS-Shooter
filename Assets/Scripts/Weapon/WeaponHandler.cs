@@ -1,46 +1,37 @@
 using Input;
 using UnityEngine;
 using UnityEngine.InputSystem;
-
+    
 namespace Weapon
 {
     public class WeaponHandler : MonoBehaviour
     {
-        [Header("Weapon Settings")]
-        [SerializeField] private GameObject bulletPrefab;
-        [SerializeField] private Transform barrelEnd;
-        [SerializeField] private float bulletSpeed = 5500f;
+        [Header("Component References")]
+        [SerializeField] private WeaponSystem weaponSystem;
         [SerializeField] private Camera mainCamera;
-        [SerializeField] private LayerMask aimHittableLayers;
 
-        [Header("Audio")]
-        [SerializeField] private AudioSource weaponAudioSource;
-        [SerializeField] private AudioClip shotSfx;
-        
-        [Header("VFX")]
-        [SerializeField] private ParticleSystem muzzleFlashVFX;
+        [Header("Weapon Settings")]
+        [SerializeField] private float bulletSpeed = 100f;
+        [SerializeField] private LayerMask aimHittableLayers;
         
         private PlayerInputActions _playerInputActions;
 
         private void Awake()
         {
+            _playerInputActions = new PlayerInputActions();
             Initialize();
             BindInputActions();
         }
 
-        private void OnEnable()
-        {
-            _playerInputActions.Player.Enable();
-        }
-
-        private void OnDisable()
-        {
-            _playerInputActions.Player.Disable();
-        }
+        private void OnEnable() => _playerInputActions.Player.Enable();
+        private void OnDisable() => _playerInputActions.Player.Disable();
 
         private void Initialize()
         {
-            _playerInputActions = new PlayerInputActions();
+            if (weaponSystem == null)
+            {
+                Debug.LogError("WeaponHandler: WeaponSystem reference not set");
+            }
         }
 
         private void BindInputActions()
@@ -50,51 +41,52 @@ namespace Weapon
 
         private void OnFire(InputAction.CallbackContext context)
         {
-            PlayShotSound();
-            PlayMuzzleFlash();
-            
-            if (bulletPrefab == null)
+            WeaponData currentWeaponData = weaponSystem.CurrentWeaponData;
+            if (currentWeaponData == null) return;
+
+            if (currentWeaponData.bulletPrefab == null)
             {
-                Debug.LogError("WeaponHandler: Bullet Prefab not assigned.");
+                Debug.LogError("WeaponHandler: The current weapon's bullet prefab is not set");
                 return;
             }
             
-            if (barrelEnd == null)
+            if (currentWeaponData.muzzleFlashVFX != null)
             {
-                Debug.LogError("WeaponHandler: Barrel End not assigned.");
-                return;
-            }
-            
-            Ray ray = mainCamera.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0));
-            Vector3 direction = ray.direction;
-            
-            if (Physics.Raycast(ray, out RaycastHit hit, 999f, aimHittableLayers))
-            {
-                direction = (hit.point - barrelEnd.position).normalized;
+                currentWeaponData.muzzleFlashVFX.Play();
             }
 
-            GameObject bulletInstance = Instantiate(bulletPrefab, barrelEnd.position, Quaternion.LookRotation(direction));
+            if (currentWeaponData.shotAudioSource != null)
+            {
+                currentWeaponData.shotAudioSource.Play();
+            }
+
+            Vector3 aimDirection = GetAimDirection();
             
-            if (bulletInstance.TryGetComponent<Rigidbody>(out Rigidbody bulletRigidbody))
+            GameObject bullet = Instantiate(currentWeaponData.bulletPrefab, currentWeaponData.barrelEnd.position, Quaternion.LookRotation(aimDirection));
+            if (bullet.TryGetComponent<Rigidbody>(out Rigidbody bulletRb))
             {
-                bulletRigidbody.AddForce(direction * bulletSpeed);
+                bulletRb.AddForce(aimDirection * bulletSpeed, ForceMode.Impulse);
             }
         }
         
-        private void PlayShotSound()
+        private Vector3 GetAimDirection()
         {
-            if (weaponAudioSource != null && shotSfx != null)
+            Vector3 targetPoint;
+            if (Physics.Raycast(mainCamera.transform.position, mainCamera.transform.forward, out RaycastHit hit, 999f, aimHittableLayers))
             {
-                weaponAudioSource.PlayOneShot(shotSfx);
+                targetPoint = hit.point;
             }
-        }
-        private void PlayMuzzleFlash()
-        {
-            if (muzzleFlashVFX != null)
+            else
             {
-                muzzleFlashVFX.Play();
+                targetPoint = mainCamera.transform.position + mainCamera.transform.forward * 100f;
             }
+            
+            WeaponData currentWeaponData = weaponSystem.CurrentWeaponData;
+            if (currentWeaponData != null)
+            {
+                return (targetPoint - currentWeaponData.barrelEnd.position).normalized;
+            }
+            return (targetPoint - mainCamera.transform.position).normalized;
         }
-        
     }
 }
