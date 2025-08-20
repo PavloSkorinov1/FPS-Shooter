@@ -518,7 +518,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   BodyMaterials:
   - {fileID: 2100000, guid: cde7794b72ba29b4fbab0dc5d3c3faf0, type: 2}
-  eyesGlow: 0
+  eyesGlow: 1
 --- !u!195 &7759648029931708411
 NavMeshAgent:
   m_ObjectHideFlags: 0
