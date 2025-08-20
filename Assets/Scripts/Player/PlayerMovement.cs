@@ -26,6 +26,7 @@ namespace Player
         
         [Header("Effects")]
         [SerializeField] private GameObject landingParticles;
+        [SerializeField] private float minFallVelocity = -5f;
         
         [Header("Audio Settings")]
         [SerializeField] private AudioSource audioSource;
@@ -207,7 +208,7 @@ namespace Player
 
         private void HandleLandingEffects()
         {
-            if (!_wasGrounded && _isGrounded)
+            if (!_wasGrounded && _isGrounded && _rigidbody.linearVelocity.y <= minFallVelocity)
             {
                 if (landingParticles != null)
                 {

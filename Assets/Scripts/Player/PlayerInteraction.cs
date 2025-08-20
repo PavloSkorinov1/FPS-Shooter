@@ -6,7 +6,7 @@ namespace Player
     {
         [SerializeField] private Weapon.WeaponSystem weaponSystem;
 
-        private void Start()
+        private void Awake()
         {
             if (weaponSystem == null)
             {
