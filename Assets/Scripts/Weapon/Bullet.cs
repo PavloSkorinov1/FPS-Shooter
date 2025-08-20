@@ -1,3 +1,4 @@
+using AI;
 using UnityEngine;
 
 namespace Weapon
@@ -9,13 +10,15 @@ namespace Weapon
         [Header("Bullet Settings")]
         [SerializeField] private float bulletLifetime = 3f;
         [SerializeField] private LayerMask hittableLayers;
+        [SerializeField] private int damage = 100;
         
         [Header("Hole Settings")]
         [SerializeField] private GameObject bulletHolePrefab;
         [SerializeField] private float bulletHoleLifetime = 3f;
 
         [Header("Audio")]
-        [SerializeField] private AudioClip hitSfx;
+        [SerializeField] private AudioClip hitSFX;
+        [SerializeField] private GameObject sfxPlayerPrefab;
         
         private Vector3 _previousPosition;
         
@@ -43,16 +46,29 @@ namespace Weapon
 
         private void HandleCollision(RaycastHit hit)
         {
-            if (hitSfx != null)
+            if (hit.collider.TryGetComponent<BotHealth>(out var botHealth))
             {
-                AudioSource.PlayClipAtPoint(hitSfx, hit.point);
+                botHealth.TakeDamage(damage);
+            }
+            else
+            {
+                if (bulletHolePrefab != null)
+                {
+                    Quaternion holeRotation = Quaternion.LookRotation(hit.normal);
+                    GameObject hole = Instantiate(bulletHolePrefab, hit.point + hit.normal * 0.001f, holeRotation);
+                    Destroy(hole, bulletHoleLifetime);
+                }
             }
             
-            if (bulletHolePrefab != null)
+            if (hitSFX != null && sfxPlayerPrefab != null)
             {
-                Quaternion holeRotation = Quaternion.LookRotation(hit.normal);
-                GameObject hole = Instantiate(bulletHolePrefab, hit.point + hit.normal * 0.001f, holeRotation);
-                Destroy(hole, bulletHoleLifetime);
+                GameObject sfxInstance = Instantiate(sfxPlayerPrefab, hit.point, Quaternion.identity);
+                if (sfxInstance.TryGetComponent<AudioSource>(out AudioSource audioSource))
+                {
+                    audioSource.clip = hitSFX;
+                    audioSource.Play();
+                    Destroy(sfxInstance, hitSFX.length);
+                }
             }
             
             Destroy(gameObject);
