@@ -153,10 +153,12 @@ MonoBehaviour:
   bulletLifetime: 3
   hittableLayers:
     serializedVersion: 2
-    m_Bits: 119
+    m_Bits: 2167
+  damage: 100
   bulletHolePrefab: {fileID: 179232, guid: b2ac1383a96f94a50b7ed458be173bbd, type: 3}
   bulletHoleLifetime: 3
-  hitSfx: {fileID: 8300000, guid: 68f790dbfa1f84670a70b81bd91a98e1, type: 3}
+  hitSFX: {fileID: 8300000, guid: 68f790dbfa1f84670a70b81bd91a98e1, type: 3}
+  sfxPlayerPrefab: {fileID: 4590476628232501857, guid: 477818e697fbe4b4da466f140be6e494, type: 3}
 --- !u!1 &8849644791493623283
 GameObject:
   m_ObjectHideFlags: 0

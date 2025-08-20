@@ -18,8 +18,8 @@ TagManager:
   - Bullet
   - WeaponPickup
   - IgnorePickup
-  - 
-  - 
+  - Enemy
+  - Player
   - 
   - 
   - 
