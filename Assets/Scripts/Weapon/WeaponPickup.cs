@@ -2,6 +2,7 @@ using UnityEngine;
 
 namespace Weapon
 {
+    [RequireComponent(typeof(Collider))]
     public class WeaponPickup : MonoBehaviour
     {
         [Header("Levitation Settings")]
@@ -25,7 +26,7 @@ namespace Weapon
             _startPosition = transform.position;
         }
         
-        private void FixedUpdate()
+        private void Update()
         {
             if (_isLevitating)
             {

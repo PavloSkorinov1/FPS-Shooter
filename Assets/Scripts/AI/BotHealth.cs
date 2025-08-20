@@ -4,6 +4,11 @@ using System.Collections;
 
 namespace AI
 {
+    [RequireComponent(typeof(Animator))]
+    [RequireComponent(typeof(NavMeshAgent))]
+    [RequireComponent(typeof(BotPursuit))]
+    [RequireComponent(typeof(Collider))]
+    [RequireComponent(typeof(Rigidbody))]
     public class BotHealth : MonoBehaviour
     {
         [SerializeField] private int maxHealth = 100;

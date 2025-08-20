@@ -25321,6 +25321,7 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 64
   landingParticles: {fileID: 1344314377593938, guid: 9e03786a9517b604d8e930182607a128, type: 3}
+  minFallVelocity: -10
   audioSource: {fileID: 1293198161}
   jumpSfx: {fileID: 8300000, guid: fb859d907317d2446a59ffdeb1807e15, type: 3}
   walkSfx:
